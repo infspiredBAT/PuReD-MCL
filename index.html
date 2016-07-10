@@ -1,0 +1,83 @@
+<html>
+<head>
+
+<pre>
+<link rel="stylesheet" href="/css/blueprint/screen.css" type="text/css" media="screen, projection"/>
+<link rel="stylesheet" href="/css/css4tools.css" type="text/css" />
+</pre>
+
+<script type="text/javascript">
+function popup(mylink, windowname)
+{
+if (! window.focus)return true;
+var href;
+if (typeof(mylink) == 'string')
+   href=mylink;
+else
+   href=mylink.href;
+window.open(href, windowname, 'width=450,height=850,scrollbars=yes,resizable=yes,toolbar=no,menubar=no');
+return false;
+}
+</script>
+
+<title>PuReD-MCL @ the BAT cave</title>
+</head>
+<body>
+
+<div class="container" style="opacity:0.92;filter:alpha(opacity=92))">
+
+<div id="header" class="span-24 last" style="background-color:white">
+<h1 style="text-align:center">PuReD-MCL</h1>
+<h2 style="text-align:center">clustering of related PubMed documents | <b>10.07.16</b></h2>
+</div>
+
+<div id="content" class="span-24 last">
+
+<form id="pured-mcl" name="input" action="../cgi-bin/pured-mcl_html.pl" method="get">
+<fieldset>
+<p style="text-align:center"><a href="http://www.ncbi.nlm.nih.gov/pubmed/18593717" target="_blank">cite us</a> | <a href="https://github.com/infspiredBAT/PuReD-MCL" target="_blank">code</a> | <a href="http://bat.infspire.org/contactus/contact_form/index.php" onClick="return popup(this, 'contact the BAT cave')">contact us</a> | <a href="http://bat.infspire.org" target="_blank">BAT cave</a></p>
+<p style="text-align:center">you may also want to try: <a href="http://bat.infspire.org/tools/meshy/" target="_blank">MeSHy - unanticipated knowledge discovery through statistical ranking of MeSH term pairs</a></p>
+</br>
+<p style="text-align:center">
+<input type="text" size="80" name="query" /> <input type="submit" name="count" value="see count before submit" />
+
+</br></br>
+select an inflation value scenario from the list
+<select name="inflations">
+  <option value="1.2-1.2-1.0">1.2 [large clusters]</option>
+  <option value="2.0-2.0-1.0" selected="yes">2.0 [reasonable clusters]</option>
+  <option value="3.0-3.0-1.0">3.0 [smaller clusters]</option>
+  <option value="4.0-4.0-1.0">4.0 [small clusters]</option>
+  <option value="1.2-2.2-1.0">from 1.2 to 2.2 in 1.0 steps</option>
+  <option value="1.2-3.2-1.0">from 1.2 to 3.2 in 1.0 steps</option>
+  <option value="1.2-4.2-1.0">from 1.2 to 4.2 in 1.0 steps</option>
+</select>
+</br></br>
+<input type="submit" name="submit" class="title" value="PuReD-MCL it!" />
+</p>
+<i>please note: we currently support a maximum of 2,000 documents/query - <a title="download PuReD-MCL" href="http://bat.infspire.org/tools/pured-mcl/pured-mcl.tar.gz">download PuReD-MCL</a> for unrestricted use</i>
+
+</fieldset>
+</form>
+
+<p>
+Run a query as if you were using PubMed, wait through the progress page, and click the relevant link to view the results. The basic output we offer now provides, for each inflation value, and for each cluster, 
+the MeSH terms that best describe and differentiate that cluster, and the PubMed documents that contain each such MeSH term. We also provide a network-based visualisation of the same information with 
+<a href=\"https://sites.google.com/site/medusa3visualization/\" target=\"_blank\">Medusa</a>, which requires the latest Java and obviously is not suited to large datasets.
+</br></br>
+The inflation value controls the granularity of the clustering, the lower the value, the lower the granularity, i.e. the lower the value, the larger the clusters. So please select one of the predefined scenarios.
+</br></br>
+now on <a href="https://github.com/infspiredBAT/PuReD-MCL" target="_blank">GitHub</a>
+</p>
+<p class="small quiet terms">
+a collaboration between the Institute of Agrobiotechnology (now Institute of Applied Biosciences) at CERTH and the
+Department of Informatics at the School of Natural Sciences
+</br></br>
+hosted at the <a href="http://bat.infspire.org/" target="_blank"> Bioinformatics Analysis Team / BAT</a>
+</p>
+
+</div>
+</div>
+
+</body>
+</html>

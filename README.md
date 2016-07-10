@@ -10,10 +10,10 @@ usage:
 before you run PuReD-MCL, be sure to:
 - have Stijn van Dongen's MCL installed and in your path
 - have installed the following Perl modules:
-	LWP::Simple
 	Getopt::Long
-	XML::LibXML::Reader
+	LWP::Simple
 	XML::Validate
+	XML::LibXML::Reader
 
 pured-mcl.pl
 

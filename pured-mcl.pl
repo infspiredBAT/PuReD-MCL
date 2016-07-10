@@ -3,10 +3,10 @@
 $| = 1;
 
 #use strict;
-use LWP::Simple;
 use Getopt::Long;
-use XML::LibXML::Reader;
+use LWP::Simple;
 use XML::Validate;
+use XML::LibXML::Reader;
 
 $version              = localtime((stat($0))[9]);
 
@@ -20,10 +20,10 @@ welcome
 before you run PuReD-MCL, be sure to:
 - have Stijn van Dongen's MCL installed and in your path
 - have installed the following Perl modules:
-\tLWP::Simple
 \tGetopt::Long
-\tXML::LibXML::Reader
+\tLWP::Simple
 \tXML::Validate
+\tXML::LibXML::Reader
 
 pured-mcl.pl
 
@@ -71,7 +71,6 @@ if ($step == 0) {
 open STDERR, '>/dev/null';
 
 if (defined($query) =~ /\w/) {
-    # ---------------------------------------------------------------------------
     # Define library for the 'get' function used in the next section.
     # $utils contains route for the utilities.
     # $db, $query, and $report may be supplied by the user when prompted; 
@@ -108,10 +107,8 @@ if (defined($query) =~ /\w/) {
         exit;
     }
     
-    # ---------------------------------------------------------------------------
     # this area defines a loop which will display $retmax citation results from 
     # Efetch each time the the Enter Key is pressed, after a prompt.
-    
     for($retstart = 0; $retstart < $count; $retstart += $retmax) {
         my $left = $count - $retstart;
         print " $left\n" unless $retstart == 0;
@@ -194,9 +191,7 @@ print "(=) done\n";
 exit(0);
 
 
-#-------------------------------------------------------------------------------
-#                                       main Sub
-#------------------------------------------------------------------------------
+## main sub
 
 sub main_maketab {
     my $pmids;
@@ -216,6 +211,8 @@ sub main_maketab {
 }
 
 
+## secondary subs
+
 sub main_select_mesh {
     my ($inflation,$step,$max_inflation) = @_;
     while($inflation <= $max_inflation) {
@@ -233,13 +230,7 @@ sub main_make_blo {
     }
 }
 
-#===============================================================================
-#                                    Inner Subs
-#===============================================================================
 
-#*******************************************************************************
-#                                   read_pmids
-#*******************************************************************************
 sub read_pmids {
     my $file_name = $_[0];
     my $list = $_[1];
@@ -308,9 +299,7 @@ sub read_pmids {
     return (\%pmids);
 }
 
-#*********************************************************************************
-#                                     create_pairs
-#*********************************************************************************
+
 sub create_pairs {
 
     my %pmids = %{ $_[0] };
@@ -329,16 +318,16 @@ sub create_pairs {
     my %chunks_500 = %{ divide_500(\%pmids) };
     
     foreach my $chunk (sort { $a <=> $b } keys %chunks_500){
-#        print " $chunk\n" if keys(%chunks_500) > 1;
+        #print " $chunk\n" if keys(%chunks_500) > 1;
         my $file_name = "$xml_filename.chunk$chunk.related";
         $pmid = join("&id=",@ { $chunks_500{$chunk} });
         if(-e $file_name) {
-#            print "(?) skipping downloading chunk number: $chunk\n";
+            #print "(?) skipping downloading chunk number: $chunk\n";
             goto PAIRS;
         }
         my $query = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/elink.fcgi?dbfrom=pubmed&id=$pmid&cmd=neighbor_score";
         my $related_results = getstore($query,$file_name);
-#        print "$related_results\n";
+        #print "$related_results\n";
         PAIRS:
         open(RELATED,"<$file_name") or die "Cannot open file $file_name for reading: $!\n";
         my $main = 0;
@@ -382,19 +371,16 @@ sub create_pairs {
         print "(!) there was an error getting related documents and their scores - exiting\n";
         exit;
     } else {
-#        print " ok\n" if keys(%chunks_500) > 1;;
+        #print " ok\n" if keys(%chunks_500) > 1;;
         return (\%pairs,$min_related,$max_related);
     }
 }
 
-#******************************************************************************
-#                                 create_mcl_graph
-#******************************************************************************
+
 sub create_mcl_graph{
     my %pairs = %{ $_[0] };
     my $min_related = $_[1];
     my $max_related = $_[2];
-#    my $file_name = filename($_[3]);
     my $file_name = $_[3];
     
     print "(?) the minimum related article score is $min_related and the maximum is $max_related\n";
@@ -433,9 +419,9 @@ sub divide_500 {
         $i++;
     }
 }
-#================================================================================
-#                                     END Subs of maketab
-#================================================================================
+
+
+## helper subs
 
 sub main_mcl_evaluation {
     my $xml_filename = $_[1];
@@ -531,8 +517,7 @@ sub evaluation {
 }
 
 
-sub select_mesh 
-{
+sub select_mesh {
     $| = 1;
 
     my %clust_pmid_mesh = (); #holds the info from the input file (Inflation\tCluster_id\tPMID\tMeSH)                                                 
@@ -587,15 +572,10 @@ sub select_mesh
         foreach my $mesh (keys %{ $mesh_in_cluster{$cluster} }) {
             if($mesh =~ /no MeSH terms/){
               $mesh_scores{$cluster}{0}{$mesh} = 1;
-	      next;
+              next;
             }
         
-#            if ($cluster_size{$cluster} == 1) {
-#	      $mesh_scores{$cluster}{"no class"}{$mesh} = 1;
-#	      next;
-#	    } 
         # if the pmid does not belong to a class. It is the only article in a cluster.                                                                                                                     
-        
             my    $prob_in_cluster = $mesh_in_cluster{$cluster}{$mesh} / $cluster_size{$cluster}; # the frequency of the mesh term inside the cluster           
             my    $prob_across_clusters = -log2($mesh_across_clusters{$mesh} / $total_pmids); # the frequency of the MeSH term across clusters                   
             
@@ -795,7 +775,6 @@ sub mesh_chemical {
     my ($inflation_no,$clust_filename,$mesh_filename) = @_;
     
     open (CLUSTERS, "$clust_filename") or die "Cannot open file $clust_filename for reading. $!\n";
-#    open (MESH, "$mesh_filename") or die "Cannot open file $mesh_filename for reading. $!\n";
 
     my %clusters;
     my %mesh_terms;
@@ -809,7 +788,6 @@ sub mesh_chemical {
         my $cur_cluster = "PuReD-MCL-$inflation-$count2print";
         my $members = $_;
         $members =~ s/"//g;
-    #  print "\n$cur_cluster\t$members\n";
         my @tmp = split /\t/,$members;
         foreach my $label (@tmp) {
             $clusters{$cur_cluster}{$label} = 1;
@@ -851,7 +829,6 @@ sub mesh_chemical {
     foreach my $cluster (sort keys %clusters){
         foreach $pmid (sort keys %{ $clusters{$cluster} }) {
             foreach my $mesh_term (sort keys %{ $mesh_terms{$pmid} }) {
-            #      print "$inflation\t$cluster\t$pmid\t$mesh_term\t$mesh_terms{$pmid}{$mesh_term}\t$tfdf{$mesh_term}\n";
                 print PM "$inflation\t$cluster\t$pmid\t$mesh_term\n";
             }
         }

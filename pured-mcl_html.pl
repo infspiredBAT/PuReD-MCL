@@ -92,7 +92,7 @@ $log = "/labs/bat/www/tools/logs/$names{unix}.log";
 $max_time = 600;
 $max_mem = 500000000;
 
-`perl /labs/bat/www/tools/cgi-bin/limitresources.pl --command "perl pured-mcl4html.pl --query '$query' --min $min_inflation --max $max_inflation --step $step --max_doc $max_doc --pwd $upload_dir" --log $log --seconds $max_time --memory $max_mem > $results_filename &`;
+`perl /labs/bat/www/tools/cgi-bin/limitresources.pl --command "perl pured-mcl.pl --query '$query' --min $min_inflation --max $max_inflation --step $step --max_doc $max_doc --pwd $upload_dir" --log $log --seconds $max_time --memory $max_mem > $results_filename &`;
 
 print "\n<pre>\n";
 $progress = '';

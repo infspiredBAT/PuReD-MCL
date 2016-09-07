@@ -459,7 +459,7 @@ sub mcl {
     `mcl $ori_mcli_filename --abc -scheme 6 -I $inflation -o $xml_filename.mcl$inflation.clustering -write-graph $mcli_filename.mclgraph 2> $xml_filename.mcl$inflation.clustering.log`;
     #  `clmformat -dump label_cluster$inflation -icl $mcli_filename.cluster$inflation -tab $mcli_filename.map`;
     
-    if (-e "pured-mcl.query0008107700.xml.mcl1.5.clustering.log") {
+    if (-e "$xml_filename.mcl$inflation.clustering.log") {
       mesh_chemical($inflation,"$xml_filename.mcl$inflation.clustering",$xml_filename);
     } else {
       print "(!) running MCL failed, is mcl installed? - exiting\n";

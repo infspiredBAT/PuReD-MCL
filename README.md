@@ -12,7 +12,6 @@ before you run PuReD-MCL, be sure to:
 - have installed the following Perl modules:
 	Getopt::Long
 	LWP::Simple
-	XML::Validate
 	XML::LibXML::Reader
 
 pured-mcl.pl

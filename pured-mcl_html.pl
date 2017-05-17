@@ -10,14 +10,14 @@ $randomer = sprintf "%010s", $randomer;
 $names{official} = 'PuReD-MCL';
 $names{unix} = 'pured-mcl';
 $names{description} = 'clustering of related PubMed documents';
-#$safe_filename_characters = "a-zA-Z0-9_.-";  
+#$safe_filename_characters = "a-zA-Z0-9_.-";
 $upload_dir = "/labs/bat/www/tools/results/$names{unix}";
 $results_filename = "$upload_dir/out$randomer";
 
-undef($/); # read whole file into a variable    
+undef($/); # read whole file into a variable
 
 $max_doc = 2000;
- 
+
 $cgi = new CGI;
 $cgi->cgi_error and error( $cgi, "error transferring file: " . $cgi->cgi_error );
 $query              = $cgi->param( "query" ); # || error( $cgi, "no query FASTA received" );
@@ -25,7 +25,7 @@ unless ($query) {
     error( $cgi, "you have provided no input" );
 }
 if ($query =~ /href ?=/) {
-    error( $cgi, "if you are not a spammer, remove href tag and have another go" );    
+    error( $cgi, "if you are not a spammer, remove href tag and have another go" );
 }
 
 if ($cgi->param( "count" )) {
@@ -35,8 +35,8 @@ if ($cgi->param( "count" )) {
     my $esearch = "$utils/esearch.fcgi?" .
                   "db=$db&usehistory=y&term=";
     my $esearch_result = get($esearch . $query);
-    $esearch_result =~ 
-      m|<Count>(\d+)</Count>.*<QueryKey>(\d+)</QueryKey>.*<WebEnv>(\S+)</WebEnv>|s;    
+    $esearch_result =~
+      m|<Count>(\d+)</Count>.*<QueryKey>(\d+)</QueryKey>.*<WebEnv>(\S+)</WebEnv>|s;
     my $count    = $1;
     my $queryKey = $2;
     my $webEnv   = $3;
@@ -82,9 +82,9 @@ HTML
 
 $inflations         = $cgi->param( "inflations" );
 @split_inflations   = (split /-/, $inflations);
-$min_inflation      = $split_inflations[0]; 
-$max_inflation      = $split_inflations[1]; 
-$step               = $split_inflations[2]; 
+$min_inflation      = $split_inflations[0];
+$max_inflation      = $split_inflations[1];
+$step               = $split_inflations[2];
 
 print "<label>running $names{official} - please wait...</label></br>";
 
@@ -161,7 +161,7 @@ exit;
 
 sub error {
     my( $cgi, $reason ) = @_;
-    
+
     print $cgi->header( "text/html" ),
           $cgi->start_html( "error @ the BAT cave" ),
           $cgi->h1( "error @ the BAT cave" ),

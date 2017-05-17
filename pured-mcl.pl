@@ -2,13 +2,12 @@
 
 $| = 1;
 
-#use strict;
 use Getopt::Long;
 use LWP::Simple;
-use XML::Validate;
+#use XML::Validate;
 use XML::LibXML::Reader;
 
-$version              = localtime((stat($0))[9]);
+$version = localtime((stat($0))[9]);
 
 $usage = "# PuReD-MCL - clustering of related PubMed documents
 # Theodosiou T. and Darzentas N.
@@ -22,7 +21,6 @@ before you run PuReD-MCL, be sure to:
 - have installed the following Perl modules:
 \tGetopt::Long
 \tLWP::Simple
-\tXML::Validate
 \tXML::LibXML::Reader
 
 pured-mcl.pl
@@ -73,13 +71,13 @@ open STDERR, '>/dev/null';
 if (defined($query) =~ /\w/) {
     # Define library for the 'get' function used in the next section.
     # $utils contains route for the utilities.
-    # $db, $query, and $report may be supplied by the user when prompted; 
+    # $db, $query, and $report may be supplied by the user when prompted;
     # if not answered, default values, will be assigned as shown below.
-    
+
     print "(?) querying PubMed with: $query\n";
 
     my $utils = "http://www.ncbi.nlm.nih.gov/entrez/eutils";
-    
+
     my $db     = "Pubmed";
     my $report = "xml";
     my $esearch = "$utils/esearch.fcgi?" .
@@ -87,27 +85,27 @@ if (defined($query) =~ /\w/) {
     my $retstart;
     my $retmax=1000;
     my $results = $pwd."/pured-mcl.query$randomer.xml";
-    
+
     my $esearch_result = get($esearch . $query);
-    
-    $esearch_result =~ 
+
+    $esearch_result =~
       m|<Count>(\d+)</Count>.*<QueryKey>(\d+)</QueryKey>.*<WebEnv>(\S+)</WebEnv>|s;
-    
+
     my $count    = $1;
     my $queryKey = $2;
     my $webEnv   = $3;
-    
+
     if ($count > $max_documents){
-        print "(!) we found $count documents but only the first $max_documents will be downloaded and validated\n";
+        print "(!) we found $count documents but only the first $max_documents will be downloaded\n";
         $count = $max_documents;
     } elsif ($count > 1) {
-        print "(=) we found $count documents - downloading and validating\n";
+        print "(=) we found $count documents - downloading\n";
     } else {
         print "(=) we found <2 documents, maybe resubmit in case PubMed did not respond - exiting\n";
         exit;
     }
-    
-    # this area defines a loop which will display $retmax citation results from 
+
+    # this area defines a loop which will display $retmax citation results from
     # Efetch each time the the Enter Key is pressed, after a prompt.
     for($retstart = 0; $retstart < $count; $retstart += $retmax) {
         my $left = $count - $retstart;
@@ -115,7 +113,7 @@ if (defined($query) =~ /\w/) {
         my $efetch = "$utils/efetch.fcgi?" .
         "retmode=$report&retstart=$retstart&retmax=$retmax&" .
         "db=$db&query_key=$queryKey&WebEnv=$webEnv";
-        
+
         my $efetch_result = get($efetch);
         $efetch_results .= $efetch_result;
         sleep(2);
@@ -127,48 +125,49 @@ if (defined($query) =~ /\w/) {
             $cleaned_efetch_results .= "$line\n";
         }
     }
-    $tmp2validate = <<XMLCODE;
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE PubmedArticleSet PUBLIC "-//NLM//DTD PubMedArticle, 1st January 2015//EN" "http://www.ncbi.nlm.nih.gov/corehtml/query/DTD/pubmed_150101.dtd">
+    $xml_results = <<XMLCODE;
+<?xml version="1.0"?>
+<!DOCTYPE PubmedArticleSet PUBLIC "-//NLM//DTD PubMedArticle, 1st January 2017//EN" "https://dtd.nlm.nih.gov/ncbi/pubmed/out/pubmed_170101.dtd">
 <PubmedArticleSet>
 $cleaned_efetch_results
 </PubmedArticleSet>
 XMLCODE
-    open(RES,">$results") or die "Cannot create file query_res.xml: $!\n";    
+    open(RES,">$results") or die "Cannot create file query_res.xml: $!\n";
     binmode(RES, ":utf8");
-    print RES $tmp2validate;
+    print RES $xml_results;
     close RES;
     $xml_filename = $results;
-    $tmp2validate = do {local (@ARGV,$/) = "$xml_filename"; <>}; # file slurp!
-    $validator = new XML::Validate(Type => 'LibXML');  
-    if ($validator->validate($tmp2validate)) {
-        print "(?) download complete and XML is valid\n";
-    } else {
-        print "(?) download complete but XML is invalid, this can happens over the net - please try again later, exiting\n";
-        my $message = $validator->last_error()->{message};
-        my $line = $validator->last_error()->{line};
-        my $column = $validator->last_error()->{column};
-        print "error: $message at line $line, column $column\n";
-        exit;
-    }    
-    undef $tmp2validate;
+    print "(?) download complete and XML saved\n";
+    #$xml_results = do {local (@ARGV,$/) = "$xml_filename"; <>}; # file slurp!
+    #$validator = new XML::Validate(Type => 'LibXML');
+    #if ($validator->validate($xml_results)) {
+    #    print "(?) download complete and XML is valid\n";
+    #} else {
+    #    print "(?) download complete but XML is invalid, this can happen over the net - please try again later, exiting\n";
+    #    my $message = $validator->last_error()->{message};
+    #    my $line = $validator->last_error()->{line};
+    #    my $column = $validator->last_error()->{column};
+    #    print "error: $message at line $line, column $column\n";
+    #    exit;
+    #}
+    #undef $xml_results;
 
 } elsif (defined($xml_filename)) {
 
-    print "(?) loading and validating PubMed XML\n";
-    $tmp2validate = do {local (@ARGV,$/) = "$xml_filename"; <>}; # file slurp!
-    $validator = new XML::Validate(Type => 'LibXML');  
-    if ($validator->validate($tmp2validate)) {
-        print "(?) XML is valid\n";
-    } else {
-        print "(?) XML is invalid - please try again with another file, exiting\n";
-        my $message = $validator->last_error()->{message};
-        my $line = $validator->last_error()->{line};
-        my $column = $validator->last_error()->{column};
-        print "error: $message at line $line, column $column\n";
-        exit;
-    }    
-    undef $tmp2validate;
+    print "(?) loading PubMed XML\n";
+    #$xml_results = do {local (@ARGV,$/) = "$xml_filename"; <>}; # file slurp!
+    #$validator = new XML::Validate(Type => 'LibXML');
+    #if ($validator->validate($xml_results)) {
+    #    print "(?) XML is valid\n";
+    #} else {
+    #    print "(?) XML is invalid - please try again with another file, exiting\n";
+    #    my $message = $validator->last_error()->{message};
+    #    my $line = $validator->last_error()->{line};
+    #    my $column = $validator->last_error()->{column};
+    #    print "error: $message at line $line, column $column\n";
+    #    exit;
+    #}
+    #undef $xml_results;
 }
 
 my $mcli_filename = $xml_filename . ".mcli";
@@ -196,17 +195,17 @@ exit(0);
 sub main_maketab {
     my $pmids;
     my $pairs;
-    
+
     my $min_related;
     my $max_related;
-    
+
     my $xml_filename = $_[0];
     my $list = $_[1];
-    
+
     $pmids = read_pmids($xml_filename,$list);
-    
+
     ($pairs,$min_related,$max_related) = create_pairs($pmids,$xml_filename);
-    
+
     create_mcl_graph($pairs,$min_related,$max_related,$xml_filename);
 }
 
@@ -223,7 +222,7 @@ sub main_select_mesh {
 
 
 sub main_make_blo {
-    my ($inflation,$step,$max_inflation,$xml_filename,$mcli_filename) = @_;   
+    my ($inflation,$step,$max_inflation,$xml_filename,$mcli_filename) = @_;
     while($inflation <= $max_inflation) {
         make_blo($inflation,"$xml_filename.mcl$inflation.output.txt",$xml_filename,$mcli_filename);
         $inflation = sprintf "%.1f", $inflation + $step;
@@ -237,13 +236,13 @@ sub read_pmids {
     my $seen = 0;
     my %pmids;
     $count = 0;
-    
+
     if($list == 1) {
         goto LIST;
     }
     my $reader = new XML::LibXML::Reader(location => $xml_filename) or
         die "Cannot open file $xml_filename for reading\n";
-    
+
     while ($reader->read) {
         if($reader->name eq "PMID" and $reader->depth == 3 and $reader->nodeType == 1){
             $reader->read;
@@ -260,14 +259,14 @@ sub read_pmids {
             $reader->read;
             if($reader->hasValue){
                 $title = $reader->value;
-                $title =~ s/"//g;    
+                $title =~ s/"//g;
                 $titles{$pmid} = "$title";
             }
             else {
                 $titles{$pmid} = "no title";
             }
             $reader->skipSiblings;
-        }	
+        }
         elsif($reader->name eq "DateCreated"){
             $reader->read;
             $reader->read;
@@ -294,7 +293,7 @@ sub read_pmids {
     }
     close XML;
     TELOS:
-    
+
     print "(?) we have " . scalar(keys %pmids) . " documents\n";
     return (\%pmids);
 }
@@ -307,16 +306,16 @@ sub create_pairs {
     my $count = scalar(keys %pmids);
 
     print "(?) getting related documents and their scores for $count documents in chunks of 500 - please wait\n";
-    
+
     my $max_related = 0;
     my $min_related = 0;
     my %pairs;
-    
+
     my @tmp_pmid;
     my $pmid;
-    
+
     my %chunks_500 = %{ divide_500(\%pmids) };
-    
+
     foreach my $chunk (sort { $a <=> $b } keys %chunks_500){
         #print " $chunk\n" if keys(%chunks_500) > 1;
         my $file_name = "$xml_filename.chunk$chunk.related";
@@ -333,7 +332,7 @@ sub create_pairs {
         my $main = 0;
         my $related_id = 0;
         my $first_time = 0;
-        
+
         while (<RELATED>){
             chomp;
             if(/<LinkSet>/){
@@ -361,7 +360,7 @@ sub create_pairs {
                         $max_related = $1;
                     }
                 }
-            }         
+            }
         }
         if(!defined($pairs{$pmid}) and $first_time == 1){
             $pairs{$pmid}{$pmid} = 0;
@@ -382,19 +381,19 @@ sub create_mcl_graph{
     my $min_related = $_[1];
     my $max_related = $_[2];
     my $file_name = $_[3];
-    
+
     print "(?) the minimum related article score is $min_related and the maximum is $max_related\n";
     print "(?) we have " . scalar(keys %pairs) . " unique MeSH terms\n";
-    
+
     open (BLO, ">$file_name.mcli") || die "\nCannot create $file_name.mcli\n\n"; #the file describing the graph in MCL format(space instead of tab)
-    
+
     foreach my $pmid (sort {$a<=>$b} keys %pairs) {
         foreach my $linkpmid (sort {$a<=>$b} keys %{$pairs{$pmid}}) {
 	    if ($pmid ne $linkpmid) {
 	      my $related_score = (($pairs{$pmid}{$linkpmid}-$min_related)/($max_related-$min_related))*100;
 	      print BLO "\"$pmid\" \"$linkpmid\" $related_score\n";
 	    } else {
-	      print BLO "\"$pmid\" \"$linkpmid\" 0\n";	      
+	      print BLO "\"$pmid\" \"$linkpmid\" 0\n";
 	    }
         }
     }
@@ -408,7 +407,7 @@ sub divide_500 {
     my $count = 0;
     my %chunks_500;
     my $i = 1;
-    
+
     while (@tmp_pmids) {
         $count = scalar(@tmp_pmids);
         if ($count <= 500) {
@@ -429,7 +428,7 @@ sub main_mcl_evaluation {
     my $inflation = $_[2];
     my $step = $_[3];
     my $max_inflation = $_[4];
-    
+
     mcl($mcli_filename,$xml_filename,$inflation,$step,$max_inflation);
     #evaluation($mcli_filename,$inflation,$step,$max_inflation);
 }
@@ -450,22 +449,22 @@ sub mcl {
     my $inflation = shift;
     my $step = shift;
     my $max_inflation = shift;
-    
+
     sleep 1;
-    
+
     #The file must be in space seperated format in the form of NODE_1 NODE_2 Weight
-    
+
     print "(?) running MCL with inflation $inflation\n";
     `mcl $ori_mcli_filename --abc -scheme 6 -I $inflation -o $xml_filename.mcl$inflation.clustering -write-graph $mcli_filename.mclgraph 2> $xml_filename.mcl$inflation.clustering.log`;
     #  `clmformat -dump label_cluster$inflation -icl $mcli_filename.cluster$inflation -tab $mcli_filename.map`;
-    
+
     if (-e "$xml_filename.mcl$inflation.clustering.log") {
       mesh_chemical($inflation,"$xml_filename.mcl$inflation.clustering",$xml_filename);
     } else {
       print "(!) running MCL failed, is mcl installed? - exiting\n";
       exit;
     }
-    
+
     $inflation = sprintf "%.1f", $inflation + $step;
     while ($inflation <= $max_inflation) {
         print "(?) running MCL with inflation $inflation\n";
@@ -485,16 +484,16 @@ sub evaluation {
     my $inflation = shift;
     my $step = shift;
     my $max_inflation = shift;
-    
+
     print "(?) performing evaluation tests\n";
     open(EVALRES,">$xml_filename.mcl$inflation.clustering.evaluation") or die "Cannot write the evaluation results: $!\n";
     sleep 1;
-    
+
     my $i = 0;
     my $maxclusters = 0;
     my $maxinflation = 0;
     my $maxefficiency = 0;
-    
+
     while($inflation <= $max_inflation){
         my $clminfo = `clminfo $mcli_filename.mclgraph $xml_filename.mcl$inflation.clustering > $xml_filename.mcl$inflation.evaluation.log`;
         $clminfo =~ /clusters=(\d+)/;
@@ -509,10 +508,10 @@ sub evaluation {
         }
         $inflation = sprintf "%.1f", $inflation + $step;
     }
-    
-    print EVALRES "\n(=) maximum efficiency is $maxefficiency at inflation $maxinflation, which corresponds to $maxclusters number of clusters\n";    
+
+    print EVALRES "\n(=) maximum efficiency is $maxefficiency at inflation $maxinflation, which corresponds to $maxclusters number of clusters\n";
     close EVALRES;
-    
+
     return;
 }
 
@@ -520,19 +519,19 @@ sub evaluation {
 sub select_mesh {
     $| = 1;
 
-    my %clust_pmid_mesh = (); #holds the info from the input file (Inflation\tCluster_id\tPMID\tMeSH)                                                 
-    my %clust_mesh_pmid = (); # data structure to hold the pmids foreach MeSH term in a cluster                                                       
-    my %cluster_size = (); # the pmids for each cluster                                                                                               
-    my %mesh_in_cluster = (); # the number of documents each mesh term belongs inside a cluster                                                       
-    my %mesh_across_clusters = (); # the number of documents containing each MeSH term across all clusters                                            
-    my %mesh_scores = (); # the scores for each MeSH term                                                                                             
+    my %clust_pmid_mesh = (); #holds the info from the input file (Inflation\tCluster_id\tPMID\tMeSH)
+    my %clust_mesh_pmid = (); # data structure to hold the pmids foreach MeSH term in a cluster
+    my %cluster_size = (); # the pmids for each cluster
+    my %mesh_in_cluster = (); # the number of documents each mesh term belongs inside a cluster
+    my %mesh_across_clusters = (); # the number of documents containing each MeSH term across all clusters
+    my %mesh_scores = (); # the scores for each MeSH term
 
     my $file_name = shift;
     $file_name =~ /\.mcl(\d+\.*\d*)\./;
     $inflation = $1;
     my $mesh_selected_file = "$xml_filename.mcl$inflation.output.html";
-    my $total_pmids = 0; # total number of articles                                                                                                   
-    my $no_clusters = 0; # total number of clusters                                                                                                   
+    my $total_pmids = 0; # total number of articles
+    my $no_clusters = 0; # total number of clusters
 
     open (FILE,"<$file_name") or die "Cannot open file $file_name for reading: $!\n";
     while (<FILE>){
@@ -550,7 +549,7 @@ sub select_mesh {
         $total_pmids += $cluster_size{$cluster};
         $no_clusters++;
         foreach my $pmid (keys %{ $clust_pmid_mesh{$cluster} }){
-    
+
             foreach my $mesh (keys %{ $clust_pmid_mesh{$cluster}{$pmid} }) {
             $mesh_in_cluster{$cluster}{$mesh}++;
             $mesh_across_clusters{$mesh}++;
@@ -559,9 +558,9 @@ sub select_mesh {
         }
         if ($cluster_size{$cluster} == 1) {
             ++$singletons;
-        } else {        
+        } else {
             print "\t(=) cluster $cluster has $cluster_size{$cluster} documents\n";
-        }        
+        }
     }
     if ($singletons > 0) {
         print "\t(=) we also found $singletons clusters with one document each\n";
@@ -574,11 +573,11 @@ sub select_mesh {
               $mesh_scores{$cluster}{0}{$mesh} = 1;
               next;
             }
-        
-        # if the pmid does not belong to a class. It is the only article in a cluster.                                                                                                                     
-            my    $prob_in_cluster = $mesh_in_cluster{$cluster}{$mesh} / $cluster_size{$cluster}; # the frequency of the mesh term inside the cluster           
-            my    $prob_across_clusters = -log2($mesh_across_clusters{$mesh} / $total_pmids); # the frequency of the MeSH term across clusters                   
-            
+
+        # if the pmid does not belong to a class. It is the only article in a cluster.
+            my    $prob_in_cluster = $mesh_in_cluster{$cluster}{$mesh} / $cluster_size{$cluster}; # the frequency of the mesh term inside the cluster
+            my    $prob_across_clusters = -log2($mesh_across_clusters{$mesh} / $total_pmids); # the frequency of the MeSH term across clusters
+
             my $score = $prob_in_cluster * $prob_across_clusters;
             $mesh_scores{$cluster}{$score}{$mesh} = 1;
         }
@@ -628,7 +627,7 @@ HTMLCODE
         my $sum_of_edges = 0;
         my $avg_connect = 0;
 
-        $mem4print = "cluster: $cluster\n";    
+        $mem4print = "cluster: $cluster\n";
         ++$node_index;
         $cluster2print = $cluster;
         $cluster2print =~ s/PuReD-MCL-mcl//;
@@ -651,7 +650,7 @@ MEDCODE
                     ."$mesh_across_clusters{$mesh} $cluster_size{$cluster} $score $diff]\t$mesh\n";
                     $flt_index++;
                     $sum_of_edges += $mesh_in_cluster{$cluster}{$mesh};
-            
+
                     $mem4print .= "  MeSH: $mesh\n";
                     ++$node_index;
                     $mesh2print = $mesh;
@@ -678,19 +677,19 @@ MEDCODE
                         $nodes4medusa .= <<MEDCODE;
 $pmid\t0.$node_index\t0.$node_index\tc 0,0,255\ts 0\ta "$titles{$pmid}"\turl "http://www.ncbi.nlm.nih.gov/pubmed?term=$pmid"\tcluster "$cluster2print"\tlayer "PubMed"
 MEDCODE
-                        $pairs4medusa{$cluster2print}{$pmid} = 1;		      
+                        $pairs4medusa{$cluster2print}{$pmid} = 1;
 			unless ($mesh eq 'no MeSH terms') {
 			  $pairs4medusa{$mesh2print}{$pmid} = $score;
 			}
                         $mem{$pmid} = 1;
-                #         $prev_mesh = $mesh;                                                                                                                     
+                #         $prev_mesh = $mesh;
                     }
-            
+
                     $previous_pmids = $cur_pmids;
                 } else {
                     %tmpmem = %mem;
                 }
-                $indx++;    
+                $indx++;
             }
         }
         print SELECT "$mem4print\n<hr>\n";
@@ -753,14 +752,14 @@ HTMLCODE
     close MEDUSA;
 
     $medusahtmlfilesize = -s "$xml_filename4html.mcl$inflation.medusa.html";
-    
+
     $html .= "html results for inflation $inflation\n";
     $html .= "html <a href=\"\/pured-mcl\_results\/$xml_filename4html.mcl$inflation.output.html\">selected MeSH terms and clustered PubMed IDs</a>\n";
     $html .= "html <a href=\"\/pured-mcl\_results\/$xml_filename4html.mcl$inflation.output.excel.txt\">the above in an Excel-friendly format (tab-delimited)</a>\n";
     if ($medusahtmlfilesize < 200001) {
-      $html .= "html visualise with <a href=\"https://sites.google.com/site/medusa3visualization/\" target=\"_blank\">Medusa</a> <a href=\"\/pured-mcl\_results\/$xml_filename4html.mcl$inflation.medusa.html\" target=\"_blank\">online</a> and <a href=\"\/pured-mcl\_results\/$xml_filename4html.mcl$inflation.medusa.dat\">offline</a> (save as...)\n";      
+      $html .= "html visualise with <a href=\"https://sites.google.com/site/medusa3visualization/\" target=\"_blank\">Medusa</a> <a href=\"\/pured-mcl\_results\/$xml_filename4html.mcl$inflation.medusa.html\" target=\"_blank\">online</a> and <a href=\"\/pured-mcl\_results\/$xml_filename4html.mcl$inflation.medusa.dat\">offline</a> (save as...)\n";
     } else {
-      $html .= "html visualise with <a href=\"https://sites.google.com/site/medusa3visualization/\" target=\"_blank\">Medusa</a> <a href=\"\/pured-mcl\_results\/$xml_filename4html.mcl$inflation.medusa.dat\">offline</a> (save as...)\n";      
+      $html .= "html visualise with <a href=\"https://sites.google.com/site/medusa3visualization/\" target=\"_blank\">Medusa</a> <a href=\"\/pured-mcl\_results\/$xml_filename4html.mcl$inflation.medusa.dat\">offline</a> (save as...)\n";
     }
 }
 
@@ -773,7 +772,7 @@ sub log2 {
 
 sub mesh_chemical {
     my ($inflation_no,$clust_filename,$mesh_filename) = @_;
-    
+
     open (CLUSTERS, "$clust_filename") or die "Cannot open file $clust_filename for reading. $!\n";
 
     my %clusters;
@@ -794,7 +793,7 @@ sub mesh_chemical {
         }
         $count++;
     }
-    
+
     close CLUSTERS;
 
     my $pmid = "";
@@ -804,11 +803,11 @@ sub mesh_chemical {
 
     while($reader->read){
         if($reader->name eq "PMID" and $reader->depth == 3 and $reader->nodeType == 1) {
-            $reader->read;        
+            $reader->read;
             if(!exists $mesh_terms{$pmid}){
                 $mesh_terms{$pmid}{"no MeSH terms"} = 1;
             }
-            $pmid = $reader->value;    
+            $pmid = $reader->value;
         }
         elsif ($reader->name eq "DescriptorName" or $reader->name eq "QualifierName" or $reader->name eq "NameOfSubstance") {
             $reader->read;
@@ -820,9 +819,9 @@ sub mesh_chemical {
                     }
                 }
             }
-        }	
+        }
     }
-    
+
     $reader->finish;
 
     open(PM,">$clust_filename.infl_cluster_pmid_mesh") or die "Cannot create file $clust_filename.infl_cluster_pmid_mesh. $!\n";

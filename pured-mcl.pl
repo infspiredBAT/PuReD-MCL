@@ -56,15 +56,13 @@ GetOptions(
     );
 
 if (!defined($query) && !defined($xml_filename) || (defined($query) && defined($xml_filename))) {
-  die $usage;
+    die $usage;
 }
 
 $randomer = int(rand(1001)) . $$;
 $randomer = sprintf "%010s", $randomer;
 
-if ($step == 0) {
-    $step = '1.0';
-}
+$step = '1.0' if $step == 0;
 
 open STDERR, '>/dev/null';
 
@@ -76,16 +74,14 @@ if (defined($query) =~ /\w/) {
 
     print "(?) querying PubMed with: $query\n";
 
-    my $utils = "http://www.ncbi.nlm.nih.gov/entrez/eutils";
-
-    my $db     = "Pubmed";
-    my $report = "xml";
+    my $utils   = "http://www.ncbi.nlm.nih.gov/entrez/eutils";
+    my $db      = "Pubmed";
+    my $report  = "xml";
     my $esearch = "$utils/esearch.fcgi?" .
                   "db=$db&usehistory=y&term=";
     my $retstart;
     my $retmax=1000;
     my $results = $pwd."/pured-mcl.query$randomer.xml";
-
     my $esearch_result = get($esearch . $query);
 
     $esearch_result =~
@@ -95,15 +91,9 @@ if (defined($query) =~ /\w/) {
     my $queryKey = $2;
     my $webEnv   = $3;
 
-    if ($count > $max_documents){
-        print "(!) we found $count documents but only the first $max_documents will be downloaded\n";
-        $count = $max_documents;
-    } elsif ($count > 1) {
-        print "(=) we found $count documents - downloading\n";
-    } else {
-        print "(=) we found <2 documents, maybe resubmit in case PubMed did not respond - exiting\n";
-        exit;
-    }
+    if ($count > $max_documents){ $count = $max_documents; print "(!) we found $count documents but only the first $max_documents will be downloaded\n";
+    } elsif ($count > 1) {                                 print "(=) we found $count documents - downloading\n";
+    } else {                                               print "(=) we found <2 documents, maybe resubmit in case PubMed did not respond - exiting\n"; exit; }
 
     # this area defines a loop which will display $retmax citation results from
     # Efetch each time the the Enter Key is pressed, after a prompt.
@@ -138,45 +128,14 @@ XMLCODE
     close RES;
     $xml_filename = $results;
     print "(?) download complete and XML saved\n";
-    #$xml_results = do {local (@ARGV,$/) = "$xml_filename"; <>}; # file slurp!
-    #$validator = new XML::Validate(Type => 'LibXML');
-    #if ($validator->validate($xml_results)) {
-    #    print "(?) download complete and XML is valid\n";
-    #} else {
-    #    print "(?) download complete but XML is invalid, this can happen over the net - please try again later, exiting\n";
-    #    my $message = $validator->last_error()->{message};
-    #    my $line = $validator->last_error()->{line};
-    #    my $column = $validator->last_error()->{column};
-    #    print "error: $message at line $line, column $column\n";
-    #    exit;
-    #}
-    #undef $xml_results;
-
 } elsif (defined($xml_filename)) {
-
     print "(?) loading PubMed XML\n";
-    #$xml_results = do {local (@ARGV,$/) = "$xml_filename"; <>}; # file slurp!
-    #$validator = new XML::Validate(Type => 'LibXML');
-    #if ($validator->validate($xml_results)) {
-    #    print "(?) XML is valid\n";
-    #} else {
-    #    print "(?) XML is invalid - please try again with another file, exiting\n";
-    #    my $message = $validator->last_error()->{message};
-    #    my $line = $validator->last_error()->{line};
-    #    my $column = $validator->last_error()->{column};
-    #    print "error: $message at line $line, column $column\n";
-    #    exit;
-    #}
-    #undef $xml_results;
 }
 
 my $mcli_filename = $xml_filename . ".mcli";
 
-if ($inflation == $max_inflation) {
-    print "(?) will run PuReD-MCL with inflation $inflation\n";
-} else {
-    print "(?) will run PuReD-MCL with inflation from $inflation to $max_inflation in $step steps\n";
-}
+if ($inflation == $max_inflation) { print "(?) will run PuReD-MCL with inflation $inflation\n";
+} else {                            print "(?) will run PuReD-MCL with inflation from $inflation to $max_inflation in $step steps\n"; }
 
 $original_inflation = $inflation;
  main_maketab($xml_filename,$list);
@@ -203,9 +162,7 @@ sub main_maketab {
     my $list = $_[1];
 
     $pmids = read_pmids($xml_filename,$list);
-
     ($pairs,$min_related,$max_related) = create_pairs($pmids,$xml_filename);
-
     create_mcl_graph($pairs,$min_related,$max_related,$xml_filename);
 }
 
@@ -221,15 +178,6 @@ sub main_select_mesh {
 }
 
 
-sub main_make_blo {
-    my ($inflation,$step,$max_inflation,$xml_filename,$mcli_filename) = @_;
-    while($inflation <= $max_inflation) {
-        make_blo($inflation,"$xml_filename.mcl$inflation.output.txt",$xml_filename,$mcli_filename);
-        $inflation = sprintf "%.1f", $inflation + $step;
-    }
-}
-
-
 sub read_pmids {
     my $file_name = $_[0];
     my $list = $_[1];
@@ -237,9 +185,7 @@ sub read_pmids {
     my %pmids;
     $count = 0;
 
-    if($list == 1) {
-        goto LIST;
-    }
+    goto LIST if $list == 1;
     my $reader = new XML::LibXML::Reader(location => $xml_filename) or
         die "Cannot open file $xml_filename for reading\n";
 
@@ -261,13 +207,12 @@ sub read_pmids {
                 $title = $reader->value;
                 $title =~ s/"//g;
                 $titles{$pmid} = "$title";
-            }
-            else {
+            } else {
                 $titles{$pmid} = "no title";
             }
             $reader->skipSiblings;
         }
-        elsif($reader->name eq "DateCreated"){
+        elsif($reader->name eq "DateRevised"){
             $reader->read;
             $reader->read;
         	if($reader->name eq "Year"){
@@ -353,12 +298,8 @@ sub create_pairs {
             elsif(/<Score>(\d+)<\/Score>/){
                 if(defined($pmids{$related_id}) && $pmid != $related_id){
                     $pairs{$pmid}{$related_id} = $1;
-                    if ($1 < $min_related or $min_related == 0) {
-                        $min_related = $1;
-                    }
-                    if ($1 > $max_related or $max_related == 0) {
-                        $max_related = $1;
-                    }
+                    if ($1 < $min_related or $min_related == 0) { $min_related = $1; }
+                    if ($1 > $max_related or $max_related == 0) { $max_related = $1; }
                 }
             }
         }
@@ -366,9 +307,7 @@ sub create_pairs {
             $pairs{$pmid}{$pmid} = 0;
         }
     }
-    if ($min_related == 0 && $max_related == 0) {
-        print "(!) there was an error getting related documents and their scores - exiting\n";
-        exit;
+    if ($min_related == 0 && $max_related == 0) { print "(!) there was an error getting related documents and their scores - exiting\n"; exit;
     } else {
         #print " ok\n" if keys(%chunks_500) > 1;;
         return (\%pairs,$min_related,$max_related);
@@ -389,12 +328,12 @@ sub create_mcl_graph{
 
     foreach my $pmid (sort {$a<=>$b} keys %pairs) {
         foreach my $linkpmid (sort {$a<=>$b} keys %{$pairs{$pmid}}) {
-	    if ($pmid ne $linkpmid) {
-	      my $related_score = (($pairs{$pmid}{$linkpmid}-$min_related)/($max_related-$min_related))*100;
-	      print BLO "\"$pmid\" \"$linkpmid\" $related_score\n";
-	    } else {
-	      print BLO "\"$pmid\" \"$linkpmid\" 0\n";
-	    }
+            if ($pmid ne $linkpmid) {
+                my $related_score = (($pairs{$pmid}{$linkpmid}-$min_related)/($max_related-$min_related))*100;
+                print BLO "\"$pmid\" \"$linkpmid\" $related_score\n";
+            } else {
+                print BLO "\"$pmid\" \"$linkpmid\" 0\n";
+            }
         }
     }
     close BLO;
@@ -459,11 +398,8 @@ sub mcl {
     #  `clmformat -dump label_cluster$inflation -icl $mcli_filename.cluster$inflation -tab $mcli_filename.map`;
 
     if (-e "$xml_filename.mcl$inflation.clustering.log") {
-      mesh_chemical($inflation,"$xml_filename.mcl$inflation.clustering",$xml_filename);
-    } else {
-      print "(!) running MCL failed, is mcl installed? - exiting\n";
-      exit;
-    }
+        mesh_chemical($inflation,"$xml_filename.mcl$inflation.clustering",$xml_filename);
+    } else { print "(!) running MCL failed, is mcl installed? - exiting\n"; exit; }
 
     $inflation = sprintf "%.1f", $inflation + $step;
     while ($inflation <= $max_inflation) {
@@ -478,42 +414,42 @@ sub mcl {
 }
 
 
-sub evaluation {
-    my $ori_mcli_filename = shift;
-    my $mcli_filename = $ori_mcli_filename;
-    my $inflation = shift;
-    my $step = shift;
-    my $max_inflation = shift;
-
-    print "(?) performing evaluation tests\n";
-    open(EVALRES,">$xml_filename.mcl$inflation.clustering.evaluation") or die "Cannot write the evaluation results: $!\n";
-    sleep 1;
-
-    my $i = 0;
-    my $maxclusters = 0;
-    my $maxinflation = 0;
-    my $maxefficiency = 0;
-
-    while($inflation <= $max_inflation){
-        my $clminfo = `clminfo $mcli_filename.mclgraph $xml_filename.mcl$inflation.clustering > $xml_filename.mcl$inflation.evaluation.log`;
-        $clminfo =~ /clusters=(\d+)/;
-        my $current_cluster = $1;
-        $clminfo =~ /efficiency=(\d+\.\d+)/;
-        my $current_efficiency = $1;
-        print EVALRES "Inflation_$inflation\tNo_Clusters: $current_cluster\tEfficiency: $current_efficiency\n";
-        if($current_efficiency > $maxefficiency){
-            $maxefficiency = $current_efficiency;
-            $maxinflation = $inflation;
-            $maxclusters = $current_cluster;
-        }
-        $inflation = sprintf "%.1f", $inflation + $step;
-    }
-
-    print EVALRES "\n(=) maximum efficiency is $maxefficiency at inflation $maxinflation, which corresponds to $maxclusters number of clusters\n";
-    close EVALRES;
-
-    return;
-}
+#sub evaluation {
+#    my $ori_mcli_filename = shift;
+#    my $mcli_filename = $ori_mcli_filename;
+#    my $inflation = shift;
+#    my $step = shift;
+#    my $max_inflation = shift;
+#
+#    print "(?) performing evaluation tests\n";
+#    open(EVALRES,">$xml_filename.mcl$inflation.clustering.evaluation") or die "Cannot write the evaluation results: $!\n";
+#    sleep 1;
+#
+#    my $i = 0;
+#    my $maxclusters = 0;
+#    my $maxinflation = 0;
+#    my $maxefficiency = 0;
+#
+#    while($inflation <= $max_inflation){
+#        my $clminfo = `clminfo $mcli_filename.mclgraph $xml_filename.mcl$inflation.clustering > $xml_filename.mcl$inflation.evaluation.log`;
+#        $clminfo =~ /clusters=(\d+)/;
+#        my $current_cluster = $1;
+#        $clminfo =~ /efficiency=(\d+\.\d+)/;
+#        my $current_efficiency = $1;
+#        print EVALRES "Inflation_$inflation\tNo_Clusters: $current_cluster\tEfficiency: $current_efficiency\n";
+#        if($current_efficiency > $maxefficiency){
+#            $maxefficiency = $current_efficiency;
+#            $maxinflation = $inflation;
+#            $maxclusters = $current_cluster;
+#        }
+#        $inflation = sprintf "%.1f", $inflation + $step;
+#    }
+#
+#    print EVALRES "\n(=) maximum efficiency is $maxefficiency at inflation $maxinflation, which corresponds to $maxclusters number of clusters\n";
+#    close EVALRES;
+#
+#    return;
+#}
 
 
 sub select_mesh {
@@ -529,7 +465,7 @@ sub select_mesh {
     my $file_name = shift;
     $file_name =~ /\.mcl(\d+\.*\d*)\./;
     $inflation = $1;
-    my $mesh_selected_file = "$xml_filename.mcl$inflation.output.html";
+    my $mesh_selected_file = "$xml_filename.mcl$inflation.out";
     my $total_pmids = 0; # total number of articles
     my $no_clusters = 0; # total number of clusters
 
@@ -549,11 +485,10 @@ sub select_mesh {
         $total_pmids += $cluster_size{$cluster};
         $no_clusters++;
         foreach my $pmid (keys %{ $clust_pmid_mesh{$cluster} }){
-
             foreach my $mesh (keys %{ $clust_pmid_mesh{$cluster}{$pmid} }) {
-            $mesh_in_cluster{$cluster}{$mesh}++;
-            $mesh_across_clusters{$mesh}++;
-            $clust_mesh_pmid{$cluster}{$mesh}{$pmid}++;
+                $mesh_in_cluster{$cluster}{$mesh}++;
+                $mesh_across_clusters{$mesh}++;
+                $clust_mesh_pmid{$cluster}{$mesh}{$pmid}++;
             }
         }
         if ($cluster_size{$cluster} == 1) {
@@ -562,22 +497,18 @@ sub select_mesh {
             print "\t(=) cluster $cluster has $cluster_size{$cluster} documents\n";
         }
     }
-    if ($singletons > 0) {
-        print "\t(=) we also found $singletons clusters with one document each\n";
-    }
+    print "\t(=) we also found $singletons clusters with one document each\n" if $singletons > 0;
     print "\t(=) in total, we have $total_pmids documents with " . scalar(keys %mesh_across_clusters) . " MeSH terms\n";
 
     foreach my $cluster (keys %cluster_size) {
         foreach my $mesh (keys %{ $mesh_in_cluster{$cluster} }) {
             if($mesh =~ /no MeSH terms/){
-              $mesh_scores{$cluster}{0}{$mesh} = 1;
-              next;
+                $mesh_scores{$cluster}{0}{$mesh} = 1;
+                next;
             }
-
         # if the pmid does not belong to a class. It is the only article in a cluster.
-            my    $prob_in_cluster = $mesh_in_cluster{$cluster}{$mesh} / $cluster_size{$cluster}; # the frequency of the mesh term inside the cluster
-            my    $prob_across_clusters = -log2($mesh_across_clusters{$mesh} / $total_pmids); # the frequency of the MeSH term across clusters
-
+            my $prob_in_cluster = $mesh_in_cluster{$cluster}{$mesh} / $cluster_size{$cluster};  # frequency of MeSH term inside  cluster
+            my $prob_across_clusters = -log2($mesh_across_clusters{$mesh} / $total_pmids);      # frequency of MeSH term across clusters
             my $score = $prob_in_cluster * $prob_across_clusters;
             $mesh_scores{$cluster}{$score}{$mesh} = 1;
         }
@@ -587,24 +518,8 @@ sub select_mesh {
 
     @split_xml_filename = (split /\//, $xml_filename);
     $xml_filename4html = pop(@split_xml_filename);
-    open (HTML,">$xml_filename.mcl$inflation.medusa.html") or die "Cannot create Medusa HTML file";
-    print HTML <<HTMLCODE;
-<HTML>
-<HEAD>
-<TITLE>PuReD-MCL @ the BAT cave | Medusa</TITLE>
-</HEAD>
-<BODY>
-<P>
-<APPLET code="medusa.applet.MedusaLite" archive="Medusa3/Medusa3.jar" width=1024 height=768>
-<param name="settings" value="0,0,0;100,255,100">
-<param name="edges" value="
-HTMLCODE
 
-    $node_index = 0;
-    $nodes4medusa = '';
-    $nodes4medusahtml = '';
-    $mem4excel = '';
-    open (SELECT, ">$mesh_selected_file") or die "Cannot open file for writing selected MeSH terms: $!\n";
+    open (SELECT, ">$mesh_selected_file.html") or die "Cannot open file for writing selected MeSH terms: $!\n";
     print SELECT <<HTMLCODE;
 <HTML>
 <HEAD>
@@ -612,89 +527,53 @@ HTMLCODE
 </HEAD>
 <BODY>
 <pre>
+
+# PuReD-MCL - clustering of related PubMed documents
+# Theodosiou T. and Darzentas N.
+# $version
+# http://bat.infspire.org | bat\@infspire.org
+#
+# query | $query
+# inflation | $inflation
+#
+# MeSH terms ordered by their score (freq in cluster * freq across clusters),
+# followed by any PMIDs they add to the cluster
+
 HTMLCODE
-    open (SEL_LOG, ">$mesh_selected_file.log") or die "Cannot open file for writing selected MeSH terms: $!\n";
-    print SEL_LOG "\nFlt_index\tIndex\tCluster\t[In_cluster Across_cluster Cluster_size Score Difference]\n";
     foreach my $cluster (sort keys %mesh_scores){
-        print SEL_LOG "--------------$cluster------------------\n";
-        my $flt_index = 1;
-        my $indx = 1;
         my %mem = ();
         my %tmpmem = ();
         my $cur_pmids = 0;
         my $previous_pmids = 0;
         my $diff = 0;
-        my $sum_of_edges = 0;
-        my $avg_connect = 0;
 
-        $mem4print = "cluster: $cluster\n";
-        ++$node_index;
-        $cluster2print = $cluster;
-        $cluster2print =~ s/PuReD-MCL-mcl//;
-        $cluster2print =~ s/-/n/;
-        $nodes4medusahtml .= <<MEDCODE;
-$cluster2print:0.$node_index:0.$node_index:255,0,0:2:'$cluster':'$cluster2print';
-MEDCODE
-        $nodes4medusa .= <<MEDCODE;
-$cluster2print\t0.$node_index\t0.$node_index\tc 255,0,0\ts 2\ta "$cluster"\turl ""\tcluster "$cluster2print"\tlayer "clusters"
-MEDCODE
+        $mem4print = "$cluster\n";
         foreach my $score (sort {$b<=>$a} keys %{ $mesh_scores{$cluster} }){
-            foreach my $mesh (keys %{ $mesh_scores{$cluster}{$score} }){
+            $score2print = sprintf "%.2f", $score;
+            foreach my $mesh (sort keys %{ $mesh_scores{$cluster}{$score} }){
+                unless ($mesh eq 'no MeSH terms') {
+                    $mem4print .= qq(\t<a href=http://www.ncbi.nlm.nih.gov/mesh?term=$mesh>$mesh</a>  {$score2print}\n);
+                } else {
+                    $mem4print .= qq(\t$mesh\n);                        
+                }
                 foreach my $pmid (keys %{ $clust_mesh_pmid{$cluster}{$mesh} }){
                     $tmpmem{$pmid} = 1;
                 }
                 $cur_pmids = scalar(keys %tmpmem);
-                $diff = $cur_pmids - $previous_pmids;
+                    $diff = $cur_pmids - $previous_pmids;
                 if ($diff >= 1) {
-                    print SEL_LOG "$flt_index\t$indx\t$cluster\t[$mesh_in_cluster{$cluster}{$mesh} "
-                    ."$mesh_across_clusters{$mesh} $cluster_size{$cluster} $score $diff]\t$mesh\n";
-                    $flt_index++;
-                    $sum_of_edges += $mesh_in_cluster{$cluster}{$mesh};
-
-                    $mem4print .= "  MeSH: $mesh\n";
-                    ++$node_index;
-                    $mesh2print = $mesh;
-                    $mesh2print =~ s/\W//g;
-		    unless ($mesh eq 'no MeSH terms') {
-                      $nodes4medusahtml .= <<MEDCODE;
-$mesh2print:0.$node_index:0.$node_index:0,255,0:1:'$mesh':'$cluster2print';
-MEDCODE
-                      $nodes4medusa .= <<MEDCODE;
-$mesh2print\t0.$node_index\t0.$node_index\tc 0,255,0\ts 1\ta "$mesh"\turl "http://www.ncbi.nlm.nih.gov/mesh?term=$mesh"\tcluster "$cluster2print"\tlayer "MeSH"
-MEDCODE
-		    }
-                    foreach my $pmid (keys %{ $clust_mesh_pmid{$cluster}{$mesh} }){
+                    foreach my $pmid (sort keys %{ $clust_mesh_pmid{$cluster}{$mesh} }){
                         $pubtypes{$pmid} =~ s/;$//;
-                        $mem4print .= "\tPMID: <a href=\"http://www.ncbi.nlm.nih.gov/pubmed?term=$pmid\">$pmid</a>\t$pub_years{$pmid}\t$titles{$pmid}\t$pubtypes{$pmid}\n";
-                        $mem4excel .= "$cluster\t$mesh\t$pmid\t$pub_years{$pmid}\t$titles{$pmid}\t$pubtypes{$pmid}\n";
-                        ++$node_index;
-                        $title2print = $titles{$pmid};
-                        $title2print =~ s/\:/_/g;
-                        $title2print =~ s/\s/_/g;
-                        $nodes4medusahtml .= <<MEDCODE;
-$pmid:0.$node_index:0.$node_index:0,0,255:0:'$title2print':'$cluster2print';
-MEDCODE
-                        $nodes4medusa .= <<MEDCODE;
-$pmid\t0.$node_index\t0.$node_index\tc 0,0,255\ts 0\ta "$titles{$pmid}"\turl "http://www.ncbi.nlm.nih.gov/pubmed?term=$pmid"\tcluster "$cluster2print"\tlayer "PubMed"
-MEDCODE
-                        $pairs4medusa{$cluster2print}{$pmid} = 1;
-			unless ($mesh eq 'no MeSH terms') {
-			  $pairs4medusa{$mesh2print}{$pmid} = $score;
-			}
+                        $mem4print .= qq(\t\t<a href="http://www.ncbi.nlm.nih.gov/pubmed?term=$pmid">$pmid</a>\t$pub_years{$pmid}\t$titles{$pmid}\t$pubtypes{$pmid}\n);
                         $mem{$pmid} = 1;
-                #         $prev_mesh = $mesh;
                     }
-
                     $previous_pmids = $cur_pmids;
                 } else {
                     %tmpmem = %mem;
                 }
-                $indx++;
             }
         }
         print SELECT "$mem4print\n<hr>\n";
-        $avg_connect = $sum_of_edges / ($flt_index-1);
-        print SEL_LOG "Sum_of_edges = $sum_of_edges\tAverage_Connectivity = $avg_connect\n";
     }
     print SELECT <<HTMLCODE;
 </pre>
@@ -703,64 +582,7 @@ MEDCODE
 HTMLCODE
     close SELECT;
 
-    open (EXCEL, ">$xml_filename.mcl$inflation.output.excel.txt") or die "Cannot open file for writing Excel-friendly output: $!\n";
-    print EXCEL "# cluster\tMeSH\tPMID\tyear\ttitle\ttype\n";
-    print EXCEL $mem4excel;
-    close EXCEL;
-
-    $edge_index = 1;
-    $edges4medusa = '';
-    foreach $a (sort keys %pairs4medusa) {
-        foreach $b (sort keys %{$pairs4medusa{$a}}) {
-            $edges4medusahtml .= <<MEDCODE;
-$a:$b:1:1:0;
-MEDCODE
-            $edges4medusa .= <<MEDCODE;
-$a\t$b\ti 1\tc 1\to 0
-MEDCODE
-            ++$edge_index;
-        }
-    }
-
-    print HTML $edges4medusahtml;
-    print HTML <<HTMLCODE;
-">
-<param name="nodes" value="
-HTMLCODE
-    print HTML $nodes4medusahtml;
-    print HTML <<HTMLCODE;
-">
-
-<param name="X" value="1100">
-<param name="Y" value="800">
-<param name="linkStart" value="http://www.google.com/search?hl=en&q=">
-<param name="linkEnd" value= "&btnG=Google+Search">
-<param name="layout" value="true">
-
-</APPLET>
-</P>
-</BODY>
-</HTML>
-HTMLCODE
-
-    open (MEDUSA,">$xml_filename.mcl$inflation.medusa.dat") or die "Cannot create Medusa file";
-    print MEDUSA "*edges\n";
-    print MEDUSA $edges4medusa;
-    print MEDUSA "*nodes\n";
-    chomp $nodes4medusa;
-    print MEDUSA $nodes4medusa;
-    close MEDUSA;
-
-    $medusahtmlfilesize = -s "$xml_filename4html.mcl$inflation.medusa.html";
-
-    $html .= "html results for inflation $inflation\n";
-    $html .= "html <a href=\"\/pured-mcl\_results\/$xml_filename4html.mcl$inflation.output.html\">selected MeSH terms and clustered PubMed IDs</a>\n";
-    $html .= "html <a href=\"\/pured-mcl\_results\/$xml_filename4html.mcl$inflation.output.excel.txt\">the above in an Excel-friendly format (tab-delimited)</a>\n";
-    if ($medusahtmlfilesize < 200001) {
-      $html .= "html visualise with <a href=\"https://sites.google.com/site/medusa3visualization/\" target=\"_blank\">Medusa</a> <a href=\"\/pured-mcl\_results\/$xml_filename4html.mcl$inflation.medusa.html\" target=\"_blank\">online</a> and <a href=\"\/pured-mcl\_results\/$xml_filename4html.mcl$inflation.medusa.dat\">offline</a> (save as...)\n";
-    } else {
-      $html .= "html visualise with <a href=\"https://sites.google.com/site/medusa3visualization/\" target=\"_blank\">Medusa</a> <a href=\"\/pured-mcl\_results\/$xml_filename4html.mcl$inflation.medusa.dat\">offline</a> (save as...)\n";
-    }
+    $html .= "\t<a href=\"\/pured-mcl\_results\/$xml_filename4html.mcl$inflation.out.html\">[HTML] clusters, their MeSH terms, and their PubMed IDs</a>\n";
 }
 
 

@@ -20,7 +20,7 @@ $max_doc = 2000;
 
 $cgi = new CGI;
 $cgi->cgi_error and error( $cgi, "error transferring file: " . $cgi->cgi_error );
-$query              = $cgi->param( "query" ); # || error( $cgi, "no query FASTA received" );
+$query = $cgi->param( "query" ); # || error( $cgi, "no query FASTA received" );
 unless ($query) {
     error( $cgi, "you have provided no input" );
 }
@@ -96,6 +96,7 @@ $max_mem = 500000000;
 
 print "\n<pre>\n";
 $progress = '';
+$files = '';
 $done = 0;
 $naptime = 0.1;
 while ($progress !~ /done/){

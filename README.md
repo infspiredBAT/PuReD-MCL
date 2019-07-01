@@ -2,7 +2,7 @@
 clustering of related PubMed documents
 
 </br>
-server: http://bat.infspire.org/tools/pured-mcl/</br>
+server: http://bat.infspire.org/tools/pured-mcl</br>
 citation: http://www.ncbi.nlm.nih.gov/pubmed/18593717</br>
 code: we provide the main Perl script, and the server's CGI script and HTML page - you'll need MCL and few Perl modules</br>
 usage:
